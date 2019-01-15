@@ -36,33 +36,45 @@ public class ZendeskService {
     /** The Constant LOG. */
     private static final Logger LOG = LoggerFactory.getLogger( ZendeskService.class );
 
+	//EXTRACT - it must relocate to a Constant class    
     private static final String ESCAPED_LINE_SEPARATOR = "\\n";
+	//EXTRACT - it must relocate to a Constant class
     private static final String ESCAPE_ER = "\\";
+	//EXTRACT - it must relocate to a Constant class
     private static final String HTML_BR = "<br/>";
+	//EXTRACT - it must relocate to a Constant class
     @Value("#{envPC['zendesk.ticket']}")
     public String PETICION_ZENDESK= "";
 
+	//EXTRACT - it must relocate to a Constant class
     @Value("#{envPC['zendesk.token']}")
     public String TOKEN_ZENDESK= "";
 
+	//EXTRACT - it must relocate to a Constant class
     @Value("#{envPC['zendesk.url']}")
     public String URL_ZENDESK= "";
 
+	//EXTRACT - it must relocate to a Constant class
     @Value("#{envPC['zendesk.user']}")
     public String ZENDESK_USER= "";
 
+	//EXTRACT - it must relocate to a Constant class
     @Value("#{envPC['tarjetas.getDatos']}")
     public String TARJETAS_GETDATOS = "";
 
+	//EXTRACT - it must relocate to a Constant class
     @Value("#{envPC['cliente.getDatos']}")
     public String CLIENTE_GETDATOS = "";
 
+	//EXTRACT - it must relocate to a Constant class
     @Value("#{envPC['zendesk.error.mail.funcionalidad']}")
     public String ZENDESK_ERROR_MAIL_FUNCIONALIDAD = "";
 
+	//EXTRACT - it must relocate to a Constant class
     @Value("#{envPC['zendesk.error.destinatario']}")
     public String ZENDESK_ERROR_DESTINATARIO = "";
 
+	//MODIFY - change to final
     private SimpleDateFormat formatter = new SimpleDateFormat("dd/MM/yyyy");
 
 
@@ -80,6 +92,7 @@ public class ZendeskService {
     @Qualifier( "emailService" )
     MensajeriaService emailService;
 
+    //EXTRACT - Refactorize to smaller methods
     /**
      * Crea un ticket en Zendesk. Si se ha informado el nÂº de tarjeta, obtiene los datos asociados a dicha tarjeta de un servicio externo.
      * @param usuarioAlta
@@ -87,6 +100,7 @@ public class ZendeskService {
      */
     public String altaTicketZendesk(UsuarioAlta usuarioAlta, String userAgent){
 
+        //CREATE - create a specific Zendesk's mapper class and inject dependency
         ObjectMapper mapper = new ObjectMapper();
         mapper.enable(SerializationFeature.INDENT_OUTPUT);
 
@@ -98,6 +112,7 @@ public class ZendeskService {
         StringBuilder clientName = new StringBuilder();
 
 
+        //EXTRACT - Refactorize to new form data method(i.e.)
         // AÃ±ade los datos del formulario
         if(StringUtils.isNotBlank(usuarioAlta.getNumPoliza())){
             datosUsuario.append("NÂº de poliza/colectivo: ").append(usuarioAlta.getNumPoliza()).append("/").append(usuarioAlta.getNumDocAcreditativo()).append(ESCAPED_LINE_SEPARATOR);
@@ -112,6 +127,8 @@ public class ZendeskService {
 
         datosBravo.append(ESCAPED_LINE_SEPARATOR + "Datos recuperados de BRAVO:" + ESCAPED_LINE_SEPARATOR + ESCAPED_LINE_SEPARATOR);
         StringBuilder datosServicio = new StringBuilder();
+       
+        //EXTRACT - Refactorize to new get id user method(i.e.)
         // Obtiene el idCliente de la tarjeta
         if(StringUtils.isNotBlank(usuarioAlta.getNumTarjeta())){
             try{
@@ -154,7 +171,8 @@ public class ZendeskService {
             }
         }
 
-        try
+        //EXTRACT - Refactorize to new get data user method(i.e.)
+       try
         {
             // Obtenemos los datos del cliente
             DatosCliente cliente = restTemplate.getForObject("http://localhost:8080/test-endpoint", DatosCliente.class, idCliente);
@@ -199,7 +217,8 @@ public class ZendeskService {
             LOG.error("Error al obtener los datos en BRAVO del cliente", e);
         }
 
-        String ticket = String.format(PETICION_ZENDESK, clientName.toString(), usuarioAlta.getEmail(), datosUsuario.toString()+datosBravo.toString()+
+       //EXTRACT - Refactorize to new create Zendesk ticket method(i.e.)
+       String ticket = String.format(PETICION_ZENDESK, clientName.toString(), usuarioAlta.getEmail(), datosUsuario.toString()+datosBravo.toString()+
                 parseJsonBravo(datosServicio));
         ticket = ticket.replaceAll("["+ESCAPED_LINE_SEPARATOR+"]", " ");
 
@@ -234,6 +253,8 @@ public class ZendeskService {
         return Arrays.asList( new ValueCode(), new ValueCode() ); // simulacion servicio externo
     }
 
+    
+    //EXTRACT - it must be a specific method of parsing JSON class
     /**
      * MÃ©todo para parsear el JSON de respuesta de los servicios de tarjeta/pÃ³liza
      *

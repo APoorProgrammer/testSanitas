@@ -26,28 +26,28 @@ import com.ning.http.client.Response;
 import com.ning.http.client.uri.Uri;
 
 public class Zendesk implements Closeable {
+	//EXTRACT - it must relocate to a Constant class
     private static final String JSON = "application/json; charset=UTF-8";
     private final boolean closeClient;
     private final AsyncHttpClient client;
     private final Realm realm;
     private final String url;
     private final String oauthToken;
-    //OUT -  create a specific Zendesk mapper class and inject dependency
+    //CREATE - create a specific Zendesk's mapper class and inject dependency
     private final ObjectMapper mapper;
     private final Logger logger;
     private boolean closed = false;
 
 
-    //A constructor, is only a constructor
+    //It must be refactorized. A constructor only must initialize properties
     private Zendesk(AsyncHttpClient client, String url, String username, String password) {
     	//This is not its job
         this.logger = LoggerFactory.getLogger(Zendesk.class);
-      //This is not its job
         this.closeClient = client == null;
-      //This is not its job
         this.oauthToken = null;
         this.client = client == null ? new AsyncHttpClient() : client;
         this.url = url.endsWith("/") ? url + "api/v2" : url + "/api/v2";
+        //This is not its job
         if (username != null) {
             this.realm = new Realm.RealmBuilder()
                     .setScheme(Realm.AuthScheme.BASIC)
@@ -61,6 +61,7 @@ public class Zendesk implements Closeable {
             }
             this.realm = null;
         }
+    	//This is not its job
         this.mapper = createMapper();
     }
 
@@ -70,7 +71,7 @@ public class Zendesk implements Closeable {
                 handle(Ticket.class, "ticket")));
     }
 
-    //OUT - must be a specific method of Zendesk mapper
+    //EXTRACT - it must be a specific method of Zendesk's mapper class
     private byte[] json(Object object) {
         try {
             return mapper.writeValueAsBytes(object);
@@ -79,6 +80,7 @@ public class Zendesk implements Closeable {
         }
     }
 
+	//EXTRACT - it must relocate to a Constant class
     private static final Pattern RESTRICTED_PATTERN = Pattern.compile("%2B", Pattern.LITERAL);
 
     private Request req(String method, Uri template, String contentType, byte[] body) {
@@ -93,7 +95,8 @@ public class Zendesk implements Closeable {
         builder.setBody(body);
         return builder.build();
     }
-
+    
+    //EXTRACT - it must be a specific class
     public static ObjectMapper createMapper() {
         ObjectMapper mapper = new ObjectMapper();
         mapper.enable(SerializationFeature.WRITE_ENUMS_USING_TO_STRING);
@@ -125,6 +128,7 @@ public class Zendesk implements Closeable {
         return client.executeRequest(request, handler);
     }
 
+    //EXTRACT - it must be a specific method of Zendesk's logger
     private void logResponse(Response response) throws IOException {
         if (logger.isDebugEnabled()) {
             logger.debug("Response HTTP/{} {}\n{}", response.getStatusCode(), response.getStatusText(),
