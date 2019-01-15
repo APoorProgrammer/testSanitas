@@ -74,23 +74,31 @@ public class ZendeskService {
         //CREATE - create a specific Zendesk's mapper class and inject dependency
         ObjectMapper mapper = new ObjectMapper();
         mapper.enable(SerializationFeature.INDENT_OUTPUT);
+    
+        String idCliente = null;
+
+        StringBuilder datosUsuario = new StringBuilder();
+        StringBuilder datosBravo = new StringBuilder();
+        StringBuilder datosServicio = new StringBuilder();
+        StringBuilder clientName = new StringBuilder();
         
         // AÃ±ade los datos del formulario
         addFormUserData(usuarioAlta, userAgent, zendeskCustomerData);
       
         // Obtiene el idCliente de la tarjeta
-        idCliente = getIdCustomer(usuarioAlta, mapper, zendeskCustomerData);
+        idCliente = getIdCustomer(usuarioAlta, mapper, datosServicio, clientName, idCliente);
 
-        renameThisMethod(zendeskCustomerData);
+        renameThisMethod(datosBravo, idCliente);
 
-        createZendeskTicket(usuarioAlta, mapper, zendeskCustomerData);
+        createZendeskTicket(usuarioAlta, mapper, datosUsuario, datosBravo, datosServicio, clientName);
 
 		datosUsuario.append(datosBravo);
 
 		return datosUsuario.toString();
     }
 
-	private void createZendeskTicket(UsuarioAlta usuarioAlta, ObjectMapper mapper, ZendeskCustomerData zendeskCustomerData) {
+	private void createZendeskTicket(UsuarioAlta usuarioAlta, ObjectMapper mapper, StringBuilder datosUsuario,
+			StringBuilder datosBravo, StringBuilder datosServicio, StringBuilder clientName) {
 		String ticket = String.format(PETICION_ZENDESK, clientName.toString(), usuarioAlta.getEmail(), datosUsuario.toString()+datosBravo.toString()+
                 parseJsonBravo(datosServicio));
         ticket = ticket.replaceAll("["+ESCAPED_LINE_SEPARATOR+"]", " ");
@@ -118,7 +126,7 @@ public class ZendeskService {
 		}
 	}
 
-	private void renameThisMethod(ZendeskCustomerData zendeskCustomerData) {
+	private void renameThisMethod(StringBuilder datosBravo, String idCliente) {
 		try
 		    {
 		        // Obtenemos los datos del cliente
@@ -165,7 +173,8 @@ public class ZendeskService {
 		    }
 	}
 
-	private String getIdCustomer(UsuarioAlta usuarioAlta, ObjectMapper mapper, ZendeskCustomerData zendeskCustomerData) {
+	private String getIdCustomer(UsuarioAlta usuarioAlta, ObjectMapper mapper, StringBuilder datosServicio,
+			StringBuilder clientName, String idCliente) {
 		if(StringUtils.isNotBlank(usuarioAlta.getNumTarjeta())){
             try{
                 String urlToRead = TARJETAS_GETDATOS + usuarioAlta.getNumTarjeta();
@@ -210,18 +219,26 @@ public class ZendeskService {
 	}
 
 	private void addFormUserData(UsuarioAlta usuarioAlta, String userAgent, ZendeskCustomerData zendeskCustomerData) {
-		if(StringUtils.isNotBlank(usuarioAlta.getNumPoliza())){
-            datosUsuario.append("NÂº de poliza/colectivo: ").append(usuarioAlta.getNumPoliza()).append("/").append(usuarioAlta.getNumDocAcreditativo()).append(ESCAPED_LINE_SEPARATOR);
-        }else{
-            datosUsuario.append("NÂº tarjeta Sanitas o Identificador: ").append(usuarioAlta.getNumTarjeta()).append(ESCAPED_LINE_SEPARATOR);
-        }
-        datosUsuario.append("Tipo documento: ").append(usuarioAlta.getTipoDocAcreditativo()).append(ESCAPED_LINE_SEPARATOR);
-        datosUsuario.append("NÂº documento: ").append(usuarioAlta.getNumDocAcreditativo()).append(ESCAPED_LINE_SEPARATOR);
-        datosUsuario.append("Email personal: ").append(usuarioAlta.getEmail()).append(ESCAPED_LINE_SEPARATOR);
-        datosUsuario.append("NÂº mÃ³vil: ").append(usuarioAlta.getNumeroTelefono()).append(ESCAPED_LINE_SEPARATOR);
-        datosUsuario.append("User Agent: ").append(userAgent).append(ESCAPED_LINE_SEPARATOR);
 
-        datosBravo.append(ESCAPED_LINE_SEPARATOR + "Datos recuperados de BRAVO:" + ESCAPED_LINE_SEPARATOR + ESCAPED_LINE_SEPARATOR);
+		StringBuilder currentUserData = zendeskCustomerData.getDatosUsuario();
+		StringBuilder currentUserBravoData = zendeskCustomerData.getDatosBravo();
+		
+		if(StringUtils.isNotBlank(usuarioAlta.getNumPoliza())){
+			currentUserData.append("NÂº de poliza/colectivo: ").append(usuarioAlta.getNumPoliza()).append("/").append(usuarioAlta.getNumDocAcreditativo());
+        }else{
+        	currentUserData.append("NÂº tarjeta Sanitas o Identificador: ").append(usuarioAlta.getNumTarjeta());
+        }
+		currentUserData.append(ESCAPED_LINE_SEPARATOR);
+		currentUserData.append("Tipo documento: ").append(usuarioAlta.getTipoDocAcreditativo()).append(ESCAPED_LINE_SEPARATOR);
+		currentUserData.append("NÂº documento: ").append(usuarioAlta.getNumDocAcreditativo()).append(ESCAPED_LINE_SEPARATOR);
+		currentUserData.append("Email personal: ").append(usuarioAlta.getEmail()).append(ESCAPED_LINE_SEPARATOR);
+		currentUserData.append("NÂº mÃ³vil: ").append(usuarioAlta.getNumeroTelefono()).append(ESCAPED_LINE_SEPARATOR);
+		currentUserData.append("User Agent: ").append(userAgent).append(ESCAPED_LINE_SEPARATOR);
+
+        currentUserBravoData.append(ESCAPED_LINE_SEPARATOR + "Datos recuperados de BRAVO:" + ESCAPED_LINE_SEPARATOR + ESCAPED_LINE_SEPARATOR);
+        
+        zendeskCustomerData.setDatosUsuario(currentUserData);
+        zendeskCustomerData.setDatosBravo(currentUserBravoData);
 	}
 
     public List< ValueCode > getTiposDocumentosRegistro() {
