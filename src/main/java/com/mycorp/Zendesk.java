@@ -24,10 +24,15 @@ import com.ning.http.client.Request;
 import com.ning.http.client.RequestBuilder;
 import com.ning.http.client.Response;
 import com.ning.http.client.uri.Uri;
+import static com.mycorp.constants.ZendeskConstants.JSON;
+import static com.mycorp.constants.ZendeskConstants.RESTRICTED_PATTERN;
 
 public class Zendesk implements Closeable {
+	
+    /** The Constant LOG. */
+    private static final Logger logger = LoggerFactory.getLogger( ZendeskService.class );
+	
 	//EXTRACT - it must relocate to a Constant class
-    private static final String JSON = "application/json; charset=UTF-8";
     private final boolean closeClient;
     private final AsyncHttpClient client;
     private final Realm realm;
@@ -35,14 +40,11 @@ public class Zendesk implements Closeable {
     private final String oauthToken;
     //CREATE - create a specific Zendesk's mapper class and inject dependency
     private final ObjectMapper mapper;
-    private final Logger logger;
     private boolean closed = false;
 
 
     //It must be refactorized. A constructor only must initialize properties
     private Zendesk(AsyncHttpClient client, String url, String username, String password) {
-    	//This is not its job
-        this.logger = LoggerFactory.getLogger(Zendesk.class);
         this.closeClient = client == null;
         this.oauthToken = null;
         this.client = client == null ? new AsyncHttpClient() : client;
@@ -79,9 +81,6 @@ public class Zendesk implements Closeable {
             throw new ZendeskException(e.getMessage(), e);
         }
     }
-
-	//EXTRACT - it must relocate to a Constant class
-    private static final Pattern RESTRICTED_PATTERN = Pattern.compile("%2B", Pattern.LITERAL);
 
     private Request req(String method, Uri template, String contentType, byte[] body) {
         RequestBuilder builder = new RequestBuilder(method);
@@ -128,7 +127,7 @@ public class Zendesk implements Closeable {
         return client.executeRequest(request, handler);
     }
 
-    //EXTRACT - it must be a specific method of Zendesk's logger
+    //EXTRACT - it must be a specific method of Zendesk's logger class
     private void logResponse(Response response) throws IOException {
         if (logger.isDebugEnabled()) {
             logger.debug("Response HTTP/{} {}\n{}", response.getStatusCode(), response.getStatusText(),
@@ -147,8 +146,6 @@ public class Zendesk implements Closeable {
         return new BasicAsyncCompletionHandler<T>(clazz, name, typeParams);
     }
 
-
-    //OUT - create a specific class
     private class BasicAsyncCompletionHandler<T> extends ZendeskAsyncCompletionHandler<T> {
         private final Class<T> clazz;
         private final String name;

@@ -1,9 +1,19 @@
 package com.mycorp.constants;
 
+import java.util.regex.Pattern;
+
 import org.springframework.beans.factory.annotation.Value;
 
 public final class ZendeskConstants {
 
+    //Zendesk
+    
+	public static final String JSON = "application/json; charset=UTF-8";
+
+	public static final Pattern RESTRICTED_PATTERN = Pattern.compile("%2B", Pattern.LITERAL);
+	
+    //ZendeskService
+    
 	public final static String ESCAPED_LINE_SEPARATOR = "\\n";
 
 	public final static  String ESCAPE_ER = "\\";
@@ -39,7 +49,7 @@ public final class ZendeskConstants {
     public final static  String REAL = "REAL";
 
     public final static  String PROSPECTO = "PROSPECTO";
-
+   
     //Customer Data
     public final static  String CUSTOMER_POLICY_NUMBER = "NÂº de poliza/colectivo: ";
     public final static  String SANITAS_CARD_ID =" NÂº tarjeta Sanitas o Identificador: ";
