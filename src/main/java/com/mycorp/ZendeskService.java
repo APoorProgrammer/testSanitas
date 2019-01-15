@@ -176,51 +176,72 @@ public class ZendeskService {
 	}
 
 	private void getIdCustomer(UsuarioAlta usuarioAlta, ObjectMapper mapper, ZendeskCustomerData zendeskCustomerData) {
+		if(StringUtils.isNotBlank(usuarioAlta.getNumTarjeta())){
+            getCustomerDataByCardNumber(usuarioAlta, mapper, zendeskCustomerData);
+        }
+        else if(StringUtils.isNotBlank(usuarioAlta.getNumPoliza())){
+            getCustomerDataByPolicyNumber(usuarioAlta, mapper, zendeskCustomerData);
+        }
+	}
 
+	private void getCustomerDataByPolicyNumber(UsuarioAlta usuarioAlta, ObjectMapper mapper, ZendeskCustomerData zendeskCustomerData) {
+		
 		String currentCustomerId = zendeskCustomerData.getIdCliente();
 		StringBuilder currentCustomerName = zendeskCustomerData.getClientName();
 		StringBuilder currentUserServiceData = zendeskCustomerData.getDatosServicio();
 		
-		if(StringUtils.isNotBlank(usuarioAlta.getNumTarjeta())){
-            try{
-                String urlToRead = TARJETAS_GETDATOS + usuarioAlta.getNumTarjeta();
-                ResponseEntity<String> res = restTemplate.getForEntity( urlToRead, String.class);
-                if(res.getStatusCode() == HttpStatus.OK){
-                    String dusuario = res.getBody();
-                    currentCustomerName.append(dusuario);
-                    currentCustomerId = dusuario;
-                    currentUserServiceData.append(CARD_SERVICE_RECOVERED_DATA).append(ESCAPED_LINE_SEPARATOR).append(mapper.writeValueAsString(dusuario));
-                }
-            }catch(Exception e)
-            {
-                LOG.error("Error al obtener los datos de la tarjeta", e);
-            }
-        }
-        else if(StringUtils.isNotBlank(usuarioAlta.getNumPoliza())){
-            try
-            {
-                Poliza poliza = new Poliza();
-                poliza.setNumPoliza(Integer.valueOf(usuarioAlta.getNumPoliza()));
-                poliza.setNumColectivo(Integer.valueOf(usuarioAlta.getNumDocAcreditativo()));
-                poliza.setCompania(1);
+		try
+		{
+		    final util.datos.DetallePoliza detallePolizaResponse = getCustomerPolicy(usuarioAlta);
+		    currentCustomerName.append(detallePolizaResponse.getTomador().getNombre()).
+		                append(" ").
+		                append(detallePolizaResponse.getTomador().getApellido1()).
+		                append(" ").
+		                append(detallePolizaResponse.getTomador().getApellido2());
 
-                PolizaBasico polizaBasicoConsulta = new PolizaBasicoFromPolizaBuilder().withPoliza( poliza ).build();
+		    currentCustomerId = detallePolizaResponse.getTomador().getIdentificador();
+		    currentUserServiceData.append(CARD_SERVICE_RECOVERED_DATA).append(ESCAPED_LINE_SEPARATOR).append(mapper.writeValueAsString(detallePolizaResponse));
+		}catch(Exception e)
+		{
+		    LOG.error("Error al obtener los datos de la poliza", e);
+		}
 
-                final util.datos.DetallePoliza detallePolizaResponse = portalclientesWebEJBRemote.recuperarDatosPoliza(polizaBasicoConsulta);
+        zendeskCustomerData.setIdCliente(currentCustomerId);
+        zendeskCustomerData.setClientName(currentCustomerName);
+        zendeskCustomerData.setDatosServicio(currentUserServiceData);
+	}
 
-                currentCustomerName.append(detallePolizaResponse.getTomador().getNombre()).
-                            append(" ").
-                            append(detallePolizaResponse.getTomador().getApellido1()).
-                            append(" ").
-                            append(detallePolizaResponse.getTomador().getApellido2());
+	private util.datos.DetallePoliza getCustomerPolicy(UsuarioAlta usuarioAlta) {
+		Poliza poliza = new Poliza();
+		poliza.setNumPoliza(Integer.valueOf(usuarioAlta.getNumPoliza()));
+		poliza.setNumColectivo(Integer.valueOf(usuarioAlta.getNumDocAcreditativo()));
+		poliza.setCompania(1);
 
-                currentCustomerId = detallePolizaResponse.getTomador().getIdentificador();
-                currentUserServiceData.append(CARD_SERVICE_RECOVERED_DATA).append(ESCAPED_LINE_SEPARATOR).append(mapper.writeValueAsString(detallePolizaResponse));
-            }catch(Exception e)
-            {
-                LOG.error("Error al obtener los datos de la poliza", e);
-            }
-        }
+		PolizaBasico polizaBasicoConsulta = new PolizaBasicoFromPolizaBuilder().withPoliza( poliza ).build();
+
+		return portalclientesWebEJBRemote.recuperarDatosPoliza(polizaBasicoConsulta);
+	}
+
+	private void getCustomerDataByCardNumber(UsuarioAlta usuarioAlta, ObjectMapper mapper, ZendeskCustomerData zendeskCustomerData) {
+		
+		String currentCustomerId = zendeskCustomerData.getIdCliente();
+		StringBuilder currentCustomerName = zendeskCustomerData.getClientName();
+		StringBuilder currentUserServiceData = zendeskCustomerData.getDatosServicio();
+		
+		try{
+		    String urlToRead = TARJETAS_GETDATOS + usuarioAlta.getNumTarjeta();
+		    ResponseEntity<String> res = restTemplate.getForEntity( urlToRead, String.class);
+		    if(res.getStatusCode() == HttpStatus.OK){
+		        String dusuario = res.getBody();
+		        currentCustomerName.append(dusuario);
+		        currentCustomerId = dusuario;
+		        currentUserServiceData.append(CARD_SERVICE_RECOVERED_DATA).append(ESCAPED_LINE_SEPARATOR).append(mapper.writeValueAsString(dusuario));
+		    }
+		}catch(Exception e)
+		{
+		    LOG.error("Error al obtener los datos de la tarjeta", e);
+		}
+		
         zendeskCustomerData.setIdCliente(currentCustomerId);
         zendeskCustomerData.setClientName(currentCustomerName);
         zendeskCustomerData.setDatosServicio(currentUserServiceData);
