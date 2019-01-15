@@ -48,6 +48,7 @@ public class ZendeskService {
 	//MODIFY - change to final
     private SimpleDateFormat formatter = new SimpleDateFormat("dd/MM/yyyy");
 
+    private ZendeskCustomerData zendeskCustomerData = new ZendeskCustomerData();
 
     /** The portalclientes web ejb remote. */
     @Autowired
@@ -73,31 +74,23 @@ public class ZendeskService {
         //CREATE - create a specific Zendesk's mapper class and inject dependency
         ObjectMapper mapper = new ObjectMapper();
         mapper.enable(SerializationFeature.INDENT_OUTPUT);
-    
-        String idCliente = null;
-
-        StringBuilder datosUsuario = new StringBuilder();
-        StringBuilder datosBravo = new StringBuilder();
-        StringBuilder datosServicio = new StringBuilder();
-        StringBuilder clientName = new StringBuilder();
         
         // AÃ±ade los datos del formulario
-        addFormUserData(usuarioAlta, userAgent, datosUsuario, datosBravo);
+        addFormUserData(usuarioAlta, userAgent, zendeskCustomerData);
       
         // Obtiene el idCliente de la tarjeta
-        idCliente = getIdCustomer(usuarioAlta, mapper, datosServicio, clientName, idCliente);
+        idCliente = getIdCustomer(usuarioAlta, mapper, zendeskCustomerData);
 
-        renameThisMethod(datosBravo, idCliente);
+        renameThisMethod(zendeskCustomerData);
 
-        createZendeskTicket(usuarioAlta, mapper, datosUsuario, datosBravo, datosServicio, clientName);
+        createZendeskTicket(usuarioAlta, mapper, zendeskCustomerData);
 
 		datosUsuario.append(datosBravo);
 
 		return datosUsuario.toString();
     }
 
-	private void createZendeskTicket(UsuarioAlta usuarioAlta, ObjectMapper mapper, StringBuilder datosUsuario,
-			StringBuilder datosBravo, StringBuilder datosServicio, StringBuilder clientName) {
+	private void createZendeskTicket(UsuarioAlta usuarioAlta, ObjectMapper mapper, ZendeskCustomerData zendeskCustomerData) {
 		String ticket = String.format(PETICION_ZENDESK, clientName.toString(), usuarioAlta.getEmail(), datosUsuario.toString()+datosBravo.toString()+
                 parseJsonBravo(datosServicio));
         ticket = ticket.replaceAll("["+ESCAPED_LINE_SEPARATOR+"]", " ");
@@ -125,7 +118,7 @@ public class ZendeskService {
 		}
 	}
 
-	private void renameThisMethod(StringBuilder datosBravo, String idCliente) {
+	private void renameThisMethod(ZendeskCustomerData zendeskCustomerData) {
 		try
 		    {
 		        // Obtenemos los datos del cliente
@@ -172,8 +165,7 @@ public class ZendeskService {
 		    }
 	}
 
-	private String getIdCustomer(UsuarioAlta usuarioAlta, ObjectMapper mapper, StringBuilder datosServicio,
-			StringBuilder clientName, String idCliente) {
+	private String getIdCustomer(UsuarioAlta usuarioAlta, ObjectMapper mapper, ZendeskCustomerData zendeskCustomerData) {
 		if(StringUtils.isNotBlank(usuarioAlta.getNumTarjeta())){
             try{
                 String urlToRead = TARJETAS_GETDATOS + usuarioAlta.getNumTarjeta();
@@ -217,8 +209,7 @@ public class ZendeskService {
 		return idCliente;
 	}
 
-	private void addFormUserData(UsuarioAlta usuarioAlta, String userAgent, StringBuilder datosUsuario,
-			StringBuilder datosBravo) {
+	private void addFormUserData(UsuarioAlta usuarioAlta, String userAgent, ZendeskCustomerData zendeskCustomerData) {
 		if(StringUtils.isNotBlank(usuarioAlta.getNumPoliza())){
             datosUsuario.append("NÂº de poliza/colectivo: ").append(usuarioAlta.getNumPoliza()).append("/").append(usuarioAlta.getNumDocAcreditativo()).append(ESCAPED_LINE_SEPARATOR);
         }else{
@@ -249,4 +240,47 @@ public class ZendeskService {
     {
         return resBravo.toString().replaceAll("[\\[\\]\\{\\}\\\"\\r]", "").replaceAll(ESCAPED_LINE_SEPARATOR, ESCAPE_ER + ESCAPED_LINE_SEPARATOR);
     }
+    
+    private class ZendeskCustomerData {
+    	
+        String idCliente = null;
+        StringBuilder datosUsuario = new StringBuilder();
+        StringBuilder datosBravo = new StringBuilder();
+        StringBuilder datosServicio = new StringBuilder();
+        StringBuilder clientName = new StringBuilder();
+        
+		public String getIdCliente() {
+			return idCliente;
+		}
+		public void setIdCliente(String idCliente) {
+			this.idCliente = idCliente;
+		}
+		public StringBuilder getDatosUsuario() {
+			return datosUsuario;
+		}
+		public void setDatosUsuario(StringBuilder datosUsuario) {
+			this.datosUsuario = datosUsuario;
+		}
+		public StringBuilder getDatosBravo() {
+			return datosBravo;
+		}
+		public void setDatosBravo(StringBuilder datosBravo) {
+			this.datosBravo = datosBravo;
+		}
+		public StringBuilder getDatosServicio() {
+			return datosServicio;
+		}
+		public void setDatosServicio(StringBuilder datosServicio) {
+			this.datosServicio = datosServicio;
+		}
+		public StringBuilder getClientName() {
+			return clientName;
+		}
+		public void setClientName(StringBuilder clientName) {
+			this.clientName = clientName;
+		}
+        
+    }
+    
+    
 }
