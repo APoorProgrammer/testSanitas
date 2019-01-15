@@ -48,8 +48,6 @@ public class ZendeskService {
 	//MODIFY - change to final
     private SimpleDateFormat formatter = new SimpleDateFormat("dd/MM/yyyy");
 
-    private ZendeskCustomerData zendeskCustomerData = new ZendeskCustomerData();
-
     /** The portalclientes web ejb remote. */
     @Autowired
     // @Qualifier("portalclientesWebEJB")
@@ -82,11 +80,13 @@ public class ZendeskService {
         StringBuilder datosServicio = new StringBuilder();
         StringBuilder clientName = new StringBuilder();
         
+        ZendeskCustomerData zendeskCustomerData = new ZendeskCustomerData();
+        
         // AÃ±ade los datos del formulario
         addFormUserData(usuarioAlta, userAgent, zendeskCustomerData);
       
         // Obtiene el idCliente de la tarjeta
-        idCliente = getIdCustomer(usuarioAlta, mapper, datosServicio, clientName, idCliente);
+        idCliente = getIdCustomer(usuarioAlta, mapper, zendeskCustomerData);
 
         renameThisMethod(datosBravo, idCliente);
 
@@ -173,17 +173,21 @@ public class ZendeskService {
 		    }
 	}
 
-	private String getIdCustomer(UsuarioAlta usuarioAlta, ObjectMapper mapper, StringBuilder datosServicio,
-			StringBuilder clientName, String idCliente) {
+	private String getIdCustomer(UsuarioAlta usuarioAlta, ObjectMapper mapper, ZendeskCustomerData zendeskCustomerData) {
+
+		String currentCustomerId = zendeskCustomerData.getIdCliente();
+		StringBuilder currentCustomerName = zendeskCustomerData.getClientName();
+		StringBuilder currentUserServiceData = zendeskCustomerData.getDatosServicio();
+		
 		if(StringUtils.isNotBlank(usuarioAlta.getNumTarjeta())){
             try{
                 String urlToRead = TARJETAS_GETDATOS + usuarioAlta.getNumTarjeta();
                 ResponseEntity<String> res = restTemplate.getForEntity( urlToRead, String.class);
                 if(res.getStatusCode() == HttpStatus.OK){
                     String dusuario = res.getBody();
-                    clientName.append(dusuario);
-                    idCliente = dusuario;
-                    datosServicio.append("Datos recuperados del servicio de tarjeta:").append(ESCAPED_LINE_SEPARATOR).append(mapper.writeValueAsString(dusuario));
+                    currentCustomerName.append(dusuario);
+                    currentCustomerId = dusuario;
+                    currentUserServiceData.append("Datos recuperados del servicio de tarjeta:").append(ESCAPED_LINE_SEPARATOR).append(mapper.writeValueAsString(dusuario));
                 }
             }catch(Exception e)
             {
@@ -202,20 +206,25 @@ public class ZendeskService {
 
                 final util.datos.DetallePoliza detallePolizaResponse = portalclientesWebEJBRemote.recuperarDatosPoliza(polizaBasicoConsulta);
 
-                clientName.append(detallePolizaResponse.getTomador().getNombre()).
+                currentCustomerName.append(detallePolizaResponse.getTomador().getNombre()).
                             append(" ").
                             append(detallePolizaResponse.getTomador().getApellido1()).
                             append(" ").
                             append(detallePolizaResponse.getTomador().getApellido2());
 
-                idCliente = detallePolizaResponse.getTomador().getIdentificador();
-                datosServicio.append("Datos recuperados del servicio de tarjeta:").append(ESCAPED_LINE_SEPARATOR).append(mapper.writeValueAsString(detallePolizaResponse));
+                currentCustomerId = detallePolizaResponse.getTomador().getIdentificador();
+                currentUserServiceData.append("Datos recuperados del servicio de tarjeta:").append(ESCAPED_LINE_SEPARATOR).append(mapper.writeValueAsString(detallePolizaResponse));
             }catch(Exception e)
             {
                 LOG.error("Error al obtener los datos de la poliza", e);
             }
         }
-		return idCliente;
+		
+        zendeskCustomerData.setIdCliente(currentCustomerId);
+        zendeskCustomerData.setClientName(currentCustomerName);
+        zendeskCustomerData.setDatosServicio(currentUserServiceData);
+		
+		return zendeskCustomerData.getIdCliente();
 	}
 
 	private void addFormUserData(UsuarioAlta usuarioAlta, String userAgent, ZendeskCustomerData zendeskCustomerData) {
