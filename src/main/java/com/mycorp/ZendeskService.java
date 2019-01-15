@@ -1,5 +1,16 @@
 package com.mycorp;
 
+import static com.mycorp.constants.ZendeskConstants.ESCAPED_LINE_SEPARATOR;
+import static com.mycorp.constants.ZendeskConstants.ESCAPE_ER;
+import static com.mycorp.constants.ZendeskConstants.HTML_BR;
+import static com.mycorp.constants.ZendeskConstants.PETICION_ZENDESK;
+import static com.mycorp.constants.ZendeskConstants.TARJETAS_GETDATOS;
+import static com.mycorp.constants.ZendeskConstants.TOKEN_ZENDESK;
+import static com.mycorp.constants.ZendeskConstants.URL_ZENDESK;
+import static com.mycorp.constants.ZendeskConstants.ZENDESK_ERROR_DESTINATARIO;
+import static com.mycorp.constants.ZendeskConstants.ZENDESK_ERROR_MAIL_FUNCIONALIDAD;
+import static com.mycorp.constants.ZendeskConstants.ZENDESK_USER;
+
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.List;
@@ -9,8 +20,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.env.Environment;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -35,44 +44,6 @@ public class ZendeskService {
 
     /** The Constant LOG. */
     private static final Logger LOG = LoggerFactory.getLogger( ZendeskService.class );
-
-	//EXTRACT - it must relocate to a Constant class    
-    private static final String ESCAPED_LINE_SEPARATOR = "\\n";
-	//EXTRACT - it must relocate to a Constant class
-    private static final String ESCAPE_ER = "\\";
-	//EXTRACT - it must relocate to a Constant class
-    private static final String HTML_BR = "<br/>";
-	//EXTRACT - it must relocate to a Constant class
-    @Value("#{envPC['zendesk.ticket']}")
-    public String PETICION_ZENDESK= "";
-
-	//EXTRACT - it must relocate to a Constant class
-    @Value("#{envPC['zendesk.token']}")
-    public String TOKEN_ZENDESK= "";
-
-	//EXTRACT - it must relocate to a Constant class
-    @Value("#{envPC['zendesk.url']}")
-    public String URL_ZENDESK= "";
-
-	//EXTRACT - it must relocate to a Constant class
-    @Value("#{envPC['zendesk.user']}")
-    public String ZENDESK_USER= "";
-
-	//EXTRACT - it must relocate to a Constant class
-    @Value("#{envPC['tarjetas.getDatos']}")
-    public String TARJETAS_GETDATOS = "";
-
-	//EXTRACT - it must relocate to a Constant class
-    @Value("#{envPC['cliente.getDatos']}")
-    public String CLIENTE_GETDATOS = "";
-
-	//EXTRACT - it must relocate to a Constant class
-    @Value("#{envPC['zendesk.error.mail.funcionalidad']}")
-    public String ZENDESK_ERROR_MAIL_FUNCIONALIDAD = "";
-
-	//EXTRACT - it must relocate to a Constant class
-    @Value("#{envPC['zendesk.error.destinatario']}")
-    public String ZENDESK_ERROR_DESTINATARIO = "";
 
 	//MODIFY - change to final
     private SimpleDateFormat formatter = new SimpleDateFormat("dd/MM/yyyy");
