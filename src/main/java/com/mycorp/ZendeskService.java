@@ -1,18 +1,30 @@
 package com.mycorp;
 
+import static com.mycorp.constants.ZendeskConstants.BIRTH_DATE;
+import static com.mycorp.constants.ZendeskConstants.CUSTOMER_TYPE;
+import static com.mycorp.constants.ZendeskConstants.DOCUMENT_NUMBER;
 import static com.mycorp.constants.ZendeskConstants.ESCAPED_LINE_SEPARATOR;
 import static com.mycorp.constants.ZendeskConstants.ESCAPE_ER;
 import static com.mycorp.constants.ZendeskConstants.HTML_BR;
 import static com.mycorp.constants.ZendeskConstants.PETICION_ZENDESK;
+import static com.mycorp.constants.ZendeskConstants.PHONE;
+import static com.mycorp.constants.ZendeskConstants.POTENCIAL;
+import static com.mycorp.constants.ZendeskConstants.PROSPECTO;
+import static com.mycorp.constants.ZendeskConstants.REAL;
+import static com.mycorp.constants.ZendeskConstants.REGISTERED;
 import static com.mycorp.constants.ZendeskConstants.TARJETAS_GETDATOS;
 import static com.mycorp.constants.ZendeskConstants.TOKEN_ZENDESK;
 import static com.mycorp.constants.ZendeskConstants.URL_ZENDESK;
 import static com.mycorp.constants.ZendeskConstants.ZENDESK_ERROR_DESTINATARIO;
 import static com.mycorp.constants.ZendeskConstants.ZENDESK_ERROR_MAIL_FUNCIONALIDAD;
 import static com.mycorp.constants.ZendeskConstants.ZENDESK_USER;
+import static com.mycorp.constants.ZendeskConstants.NEW_CUSTOMER_CAUSE_ID;
+import static com.mycorp.constants.ZendeskConstants.CUSTOMER_STATE_ID;
+import static com.mycorp.constants.ZendeskConstants.*;
 
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
@@ -73,8 +85,6 @@ public class ZendeskService {
         ObjectMapper mapper = new ObjectMapper();
         mapper.enable(SerializationFeature.INDENT_OUTPUT);
     
-        String idCliente = null;
-
         StringBuilder datosUsuario = new StringBuilder();
         StringBuilder datosBravo = new StringBuilder();
         StringBuilder datosServicio = new StringBuilder();
@@ -86,9 +96,9 @@ public class ZendeskService {
         addFormUserData(usuarioAlta, userAgent, zendeskCustomerData);
       
         // Obtiene el idCliente de la tarjeta
-        idCliente = getIdCustomer(usuarioAlta, mapper, zendeskCustomerData);
+        getIdCustomer(usuarioAlta, mapper, zendeskCustomerData);
 
-        renameThisMethod(datosBravo, idCliente);
+        getCustomerBravoData(zendeskCustomerData);
 
         createZendeskTicket(usuarioAlta, mapper, datosUsuario, datosBravo, datosServicio, clientName);
 
@@ -99,6 +109,7 @@ public class ZendeskService {
 
 	private void createZendeskTicket(UsuarioAlta usuarioAlta, ObjectMapper mapper, StringBuilder datosUsuario,
 			StringBuilder datosBravo, StringBuilder datosServicio, StringBuilder clientName) {
+	
 		String ticket = String.format(PETICION_ZENDESK, clientName.toString(), usuarioAlta.getEmail(), datosUsuario.toString()+datosBravo.toString()+
                 parseJsonBravo(datosServicio));
         ticket = ticket.replaceAll("["+ESCAPED_LINE_SEPARATOR+"]", " ");
@@ -126,54 +137,45 @@ public class ZendeskService {
 		}
 	}
 
-	private void renameThisMethod(StringBuilder datosBravo, String idCliente) {
+	private void getCustomerBravoData(ZendeskCustomerData zendeskCustomerData) {
+		
+		String currentCustomerId = zendeskCustomerData.getIdCliente();
+		StringBuilder currentUserBravoData = zendeskCustomerData.getDatosBravo();
+
+        currentUserBravoData.append(ESCAPED_LINE_SEPARATOR).append(GETTED_CUSTOMER_BRAVO_DATA).append(ESCAPED_LINE_SEPARATOR).append(ESCAPED_LINE_SEPARATOR);
 		try
 		    {
 		        // Obtenemos los datos del cliente
-		        DatosCliente cliente = restTemplate.getForObject("http://localhost:8080/test-endpoint", DatosCliente.class, idCliente);
-
-		        datosBravo.append("TelÃ©fono: ").append(cliente.getGenTGrupoTmk()).append(ESCAPED_LINE_SEPARATOR);
-
-
-		        datosBravo.append("Feha de nacimiento: ").append(formatter.format(formatter.parse(cliente.getFechaNacimiento()))).append(ESCAPED_LINE_SEPARATOR);
-
-		        List< ValueCode > tiposDocumentos = getTiposDocumentosRegistro();
-		        for(int i = 0; i < tiposDocumentos.size();i++)
-		        {
-		            if(tiposDocumentos.get(i).getCode().equals(cliente.getGenCTipoDocumento().toString()))
-		            {
-		                datosBravo.append("Tipo de documento: ").append(tiposDocumentos.get(i).getValue()).append(ESCAPED_LINE_SEPARATOR);
-		            }
-		        }
-		        datosBravo.append("NÃºmero documento: ").append(cliente.getNumeroDocAcred()).append(ESCAPED_LINE_SEPARATOR);
-
-		        datosBravo.append("Tipo cliente: ");
-		        switch (cliente.getGenTTipoCliente()) {
-		        case 1:
-		            datosBravo.append("POTENCIAL").append(ESCAPED_LINE_SEPARATOR);
-		            break;
-		        case 2:
-		            datosBravo.append("REAL").append(ESCAPED_LINE_SEPARATOR);
-		            break;
-		        case 3:
-		            datosBravo.append("PROSPECTO").append(ESCAPED_LINE_SEPARATOR);
-		            break;
-		        }
-
-		        datosBravo.append("ID estado del cliente: ").append(cliente.getGenTStatus()).append(ESCAPED_LINE_SEPARATOR);
-
-		        datosBravo.append("ID motivo de alta cliente: ").append(cliente.getIdMotivoAlta()).append(ESCAPED_LINE_SEPARATOR);
-
-		        datosBravo.append("Registrado: ").append((cliente.getfInactivoWeb() == null ? "SÃ­" : "No")).append(ESCAPED_LINE_SEPARATOR + ESCAPED_LINE_SEPARATOR);
-
-
+		        DatosCliente cliente = restTemplate.getForObject("http://localhost:8080/test-endpoint", DatosCliente.class, currentCustomerId);
+		        //Append Customer's Bravo Data 
+		        currentUserBravoData.append(PHONE).append(cliente.getGenTGrupoTmk()).append(ESCAPED_LINE_SEPARATOR);
+		        currentUserBravoData.append(BIRTH_DATE).append(formatter.format(formatter.parse(cliente.getFechaNacimiento()))).append(ESCAPED_LINE_SEPARATOR);
+		        appendCustomerBravoDataDocumentTypes(currentUserBravoData, cliente);
+		        currentUserBravoData.append(DOCUMENT_NUMBER_BD).append(cliente.getNumeroDocAcred()).append(ESCAPED_LINE_SEPARATOR);
+		        currentUserBravoData.append(CUSTOMER_TYPE).append(CustomerType.getCustomerType(cliente.getGenTTipoCliente()));
+		        currentUserBravoData.append(CUSTOMER_STATE_ID).append(cliente.getGenTStatus()).append(ESCAPED_LINE_SEPARATOR);
+		        currentUserBravoData.append(NEW_CUSTOMER_CAUSE_ID).append(cliente.getIdMotivoAlta()).append(ESCAPED_LINE_SEPARATOR);
+		        currentUserBravoData.append(REGISTERED).append((cliente.getfInactivoWeb() == null ? YES : NO)).append(ESCAPED_LINE_SEPARATOR + ESCAPED_LINE_SEPARATOR);
 		    }catch(Exception e)
 		    {
 		        LOG.error("Error al obtener los datos en BRAVO del cliente", e);
 		    }
+		
+		zendeskCustomerData.setDatosBravo(currentUserBravoData);
+	}
+	
+	private void appendCustomerBravoDataDocumentTypes(StringBuilder currentUserBravoData, DatosCliente cliente) {
+		List< ValueCode > tiposDocumentos = getTiposDocumentosRegistro();
+		for(int i = 0; i < tiposDocumentos.size();i++)
+		{
+		    if(tiposDocumentos.get(i).getCode().equals(cliente.getGenCTipoDocumento().toString()))
+		    {
+		    	currentUserBravoData.append(DOCUMENT_TYPE_BD).append(tiposDocumentos.get(i).getValue()).append(ESCAPED_LINE_SEPARATOR);
+		    }
+		}
 	}
 
-	private String getIdCustomer(UsuarioAlta usuarioAlta, ObjectMapper mapper, ZendeskCustomerData zendeskCustomerData) {
+	private void getIdCustomer(UsuarioAlta usuarioAlta, ObjectMapper mapper, ZendeskCustomerData zendeskCustomerData) {
 
 		String currentCustomerId = zendeskCustomerData.getIdCliente();
 		StringBuilder currentCustomerName = zendeskCustomerData.getClientName();
@@ -187,7 +189,7 @@ public class ZendeskService {
                     String dusuario = res.getBody();
                     currentCustomerName.append(dusuario);
                     currentCustomerId = dusuario;
-                    currentUserServiceData.append("Datos recuperados del servicio de tarjeta:").append(ESCAPED_LINE_SEPARATOR).append(mapper.writeValueAsString(dusuario));
+                    currentUserServiceData.append(CARD_SERVICE_RECOVERED_DATA).append(ESCAPED_LINE_SEPARATOR).append(mapper.writeValueAsString(dusuario));
                 }
             }catch(Exception e)
             {
@@ -213,41 +215,34 @@ public class ZendeskService {
                             append(detallePolizaResponse.getTomador().getApellido2());
 
                 currentCustomerId = detallePolizaResponse.getTomador().getIdentificador();
-                currentUserServiceData.append("Datos recuperados del servicio de tarjeta:").append(ESCAPED_LINE_SEPARATOR).append(mapper.writeValueAsString(detallePolizaResponse));
+                currentUserServiceData.append(CARD_SERVICE_RECOVERED_DATA).append(ESCAPED_LINE_SEPARATOR).append(mapper.writeValueAsString(detallePolizaResponse));
             }catch(Exception e)
             {
                 LOG.error("Error al obtener los datos de la poliza", e);
             }
         }
-		
         zendeskCustomerData.setIdCliente(currentCustomerId);
         zendeskCustomerData.setClientName(currentCustomerName);
         zendeskCustomerData.setDatosServicio(currentUserServiceData);
-		
-		return zendeskCustomerData.getIdCliente();
 	}
 
 	private void addFormUserData(UsuarioAlta usuarioAlta, String userAgent, ZendeskCustomerData zendeskCustomerData) {
 
 		StringBuilder currentUserData = zendeskCustomerData.getDatosUsuario();
-		StringBuilder currentUserBravoData = zendeskCustomerData.getDatosBravo();
 		
 		if(StringUtils.isNotBlank(usuarioAlta.getNumPoliza())){
-			currentUserData.append("NÂº de poliza/colectivo: ").append(usuarioAlta.getNumPoliza()).append("/").append(usuarioAlta.getNumDocAcreditativo());
+			currentUserData.append(CUSTOMER_POLICY_NUMBER).append(usuarioAlta.getNumPoliza()).append("/").append(usuarioAlta.getNumDocAcreditativo());
         }else{
-        	currentUserData.append("NÂº tarjeta Sanitas o Identificador: ").append(usuarioAlta.getNumTarjeta());
+        	currentUserData.append(SANITAS_CARD_ID).append(usuarioAlta.getNumTarjeta());
         }
 		currentUserData.append(ESCAPED_LINE_SEPARATOR);
-		currentUserData.append("Tipo documento: ").append(usuarioAlta.getTipoDocAcreditativo()).append(ESCAPED_LINE_SEPARATOR);
-		currentUserData.append("NÂº documento: ").append(usuarioAlta.getNumDocAcreditativo()).append(ESCAPED_LINE_SEPARATOR);
-		currentUserData.append("Email personal: ").append(usuarioAlta.getEmail()).append(ESCAPED_LINE_SEPARATOR);
-		currentUserData.append("NÂº mÃ³vil: ").append(usuarioAlta.getNumeroTelefono()).append(ESCAPED_LINE_SEPARATOR);
-		currentUserData.append("User Agent: ").append(userAgent).append(ESCAPED_LINE_SEPARATOR);
+		currentUserData.append(DOCUMENT_TYPE_CD).append(usuarioAlta.getTipoDocAcreditativo()).append(ESCAPED_LINE_SEPARATOR);
+		currentUserData.append(DOCUMENT_NUMBER_CD).append(usuarioAlta.getNumDocAcreditativo()).append(ESCAPED_LINE_SEPARATOR);
+		currentUserData.append(EMAIL).append(usuarioAlta.getEmail()).append(ESCAPED_LINE_SEPARATOR);
+		currentUserData.append(CELLPHONE_NUMBER).append(usuarioAlta.getNumeroTelefono()).append(ESCAPED_LINE_SEPARATOR);
+		currentUserData.append(USER_AGENT).append(userAgent).append(ESCAPED_LINE_SEPARATOR);
 
-        currentUserBravoData.append(ESCAPED_LINE_SEPARATOR + "Datos recuperados de BRAVO:" + ESCAPED_LINE_SEPARATOR + ESCAPED_LINE_SEPARATOR);
-        
         zendeskCustomerData.setDatosUsuario(currentUserData);
-        zendeskCustomerData.setDatosBravo(currentUserBravoData);
 	}
 
     public List< ValueCode > getTiposDocumentosRegistro() {
@@ -308,5 +303,20 @@ public class ZendeskService {
         
     }
     
+	private static class CustomerType {
+		
+		static HashMap<Integer, String > myCustomerTypeMap = new HashMap<>();
+
+		private CustomerType(){
+			myCustomerTypeMap.put(1, (new StringBuilder().append(POTENCIAL).append(ESCAPED_LINE_SEPARATOR)).toString());
+			myCustomerTypeMap.put(2, (new StringBuilder().append(REAL).append(ESCAPED_LINE_SEPARATOR)).toString());
+			myCustomerTypeMap.put(3, (new StringBuilder().append(PROSPECTO).append(ESCAPED_LINE_SEPARATOR)).toString());
+		}
+		
+		public static String getCustomerType(Integer key){
+			return myCustomerTypeMap.get(key);
+		}
+		
+	}
     
 }
