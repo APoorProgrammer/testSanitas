@@ -100,19 +100,16 @@ public class ZendeskService {
 
         getCustomerBravoData(zendeskCustomerData);
 
-        createZendeskTicket(usuarioAlta, mapper, datosUsuario, datosBravo, datosServicio, clientName);
+        createZendeskTicket(usuarioAlta, mapper, zendeskCustomerData);
 
 		datosUsuario.append(datosBravo);
 
 		return datosUsuario.toString();
     }
 
-	private void createZendeskTicket(UsuarioAlta usuarioAlta, ObjectMapper mapper, StringBuilder datosUsuario,
-			StringBuilder datosBravo, StringBuilder datosServicio, StringBuilder clientName) {
+	private void createZendeskTicket(UsuarioAlta usuarioAlta, ObjectMapper mapper, ZendeskCustomerData zendeskCustomerData) {
 	
-		String ticket = String.format(PETICION_ZENDESK, clientName.toString(), usuarioAlta.getEmail(), datosUsuario.toString()+datosBravo.toString()+
-                parseJsonBravo(datosServicio));
-        ticket = ticket.replaceAll("["+ESCAPED_LINE_SEPARATOR+"]", " ");
+		String ticket = formatZendeskTicket(usuarioAlta, zendeskCustomerData);
 
         try(Zendesk zendesk = new Zendesk.Builder(URL_ZENDESK).setUsername(ZENDESK_USER).setToken(TOKEN_ZENDESK).build()){
             //Ticket
@@ -124,8 +121,8 @@ public class ZendeskService {
             // Send email
 
             CorreoElectronico correo = new CorreoElectronico( Long.parseLong(ZENDESK_ERROR_MAIL_FUNCIONALIDAD), "es" )
-                    .addParam(datosUsuario.toString().replaceAll(ESCAPE_ER+ESCAPED_LINE_SEPARATOR, HTML_BR))
-                    .addParam(datosBravo.toString().replaceAll(ESCAPE_ER+ESCAPED_LINE_SEPARATOR, HTML_BR));
+                    .addParam(zendeskCustomerData.getDatosUsuario().toString().replaceAll(ESCAPE_ER+ESCAPED_LINE_SEPARATOR, HTML_BR))
+                    .addParam(zendeskCustomerData.getDatosBravo().toString().replaceAll(ESCAPE_ER+ESCAPED_LINE_SEPARATOR, HTML_BR));
             correo.setEmailA( ZENDESK_ERROR_DESTINATARIO );
             try
             {
@@ -135,6 +132,13 @@ public class ZendeskService {
 			}
 
 		}
+	}
+
+	private String formatZendeskTicket(UsuarioAlta usuarioAlta, ZendeskCustomerData zendeskCustomerData) {
+		
+		String ticket = String.format(PETICION_ZENDESK, zendeskCustomerData.getClientName().toString(), usuarioAlta.getEmail(), zendeskCustomerData.getDatosUsuario().toString()+zendeskCustomerData.getDatosBravo().toString()+
+                parseJsonBravo(zendeskCustomerData.getDatosServicio()));
+        return  ticket.replaceAll("["+ESCAPED_LINE_SEPARATOR+"]", " ");
 	}
 
 	private void getCustomerBravoData(ZendeskCustomerData zendeskCustomerData) {
