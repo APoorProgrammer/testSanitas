@@ -112,11 +112,7 @@ public class ZendeskService {
         }catch(Exception e){
             LOG.error("Error al crear ticket ZENDESK", e);
             // Send email
-
-            CorreoElectronico correo = new CorreoElectronico( Long.parseLong(ZENDESK_ERROR_MAIL_FUNCIONALIDAD), "es" )
-                    .addParam(zendeskCustomerData.getDatosUsuario().toString().replaceAll(ESCAPE_ER+ESCAPED_LINE_SEPARATOR, HTML_BR))
-                    .addParam(zendeskCustomerData.getDatosBravo().toString().replaceAll(ESCAPE_ER+ESCAPED_LINE_SEPARATOR, HTML_BR));
-            correo.setEmailA( ZENDESK_ERROR_DESTINATARIO );
+            CorreoElectronico correo = getFormattedEmail(zendeskCustomerData);
             try
             {
                 emailService.enviar( correo );
@@ -125,6 +121,15 @@ public class ZendeskService {
 			}
 
 		}
+	}
+
+    //EXTRACT - it must be a specific method of mail service class implementation
+	private CorreoElectronico getFormattedEmail(ZendeskCustomerData zendeskCustomerData) {
+		CorreoElectronico correo = new CorreoElectronico( Long.parseLong(ZENDESK_ERROR_MAIL_FUNCIONALIDAD), "es" )
+		        .addParam(zendeskCustomerData.getDatosUsuario().toString().replaceAll(ESCAPE_ER+ESCAPED_LINE_SEPARATOR, HTML_BR))
+		        .addParam(zendeskCustomerData.getDatosBravo().toString().replaceAll(ESCAPE_ER+ESCAPED_LINE_SEPARATOR, HTML_BR));
+		correo.setEmailA( ZENDESK_ERROR_DESTINATARIO );
+		return correo;
 	}
 
 	private String formatZendeskTicket(UsuarioAlta usuarioAlta, ZendeskCustomerData zendeskCustomerData) {
@@ -266,7 +271,6 @@ public class ZendeskService {
     public List< ValueCode > getTiposDocumentosRegistro() {
         return Arrays.asList( new ValueCode(), new ValueCode() ); // simulacion servicio externo
     }
-
     
     //EXTRACT - it must be a specific method of parsing JSON class
     /**
