@@ -85,11 +85,6 @@ public class ZendeskService {
         ObjectMapper mapper = new ObjectMapper();
         mapper.enable(SerializationFeature.INDENT_OUTPUT);
     
-        StringBuilder datosUsuario = new StringBuilder();
-        StringBuilder datosBravo = new StringBuilder();
-        StringBuilder datosServicio = new StringBuilder();
-        StringBuilder clientName = new StringBuilder();
-        
         ZendeskCustomerData zendeskCustomerData = new ZendeskCustomerData();
         
         // AÃ±ade los datos del formulario
@@ -102,9 +97,7 @@ public class ZendeskService {
 
         createZendeskTicket(usuarioAlta, mapper, zendeskCustomerData);
 
-		datosUsuario.append(datosBravo);
-
-		return datosUsuario.toString();
+        return zendeskCustomerData.getDatosUsuario().append(zendeskCustomerData.getDatosBravo()).toString();
     }
 
 	private void createZendeskTicket(UsuarioAlta usuarioAlta, ObjectMapper mapper, ZendeskCustomerData zendeskCustomerData) {
